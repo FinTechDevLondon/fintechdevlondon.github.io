@@ -3,7 +3,7 @@ layout: post
 title: Type Erasure with C++, A Comprehensive Review
 ---
 
-# Type Erasure with C++, A Comprehensive Review
+## Type Erasure with C++, A Comprehensive Review
 
 C++ is a statically typed language. At the most basic level, this means that something of one type cannot be put into a place where something of another type is expected. For example, the following doesn't appear to make any sense in the C++ language.
 
@@ -49,17 +49,17 @@ But what happens if we need to invoke some other logic? The player might have so
 We can get around the Python problem by doing some kind of check.
 
 ```python
-    // Pseudocode
-    for each element in the_list:
-        if element.type() == something_that_can_jump:
-            element.jump()
+// Pseudocode
+for each element in the_list:
+    if element.type() == something_that_can_jump:
+        element.jump()
 ```
 
 But Python is already slow, which is why it isn't used to write the logic for AAA games, and we just made it slower by adding an additional level of branching.
 
 It would be nice if we could harness the speed of C++, but also be able to use Python-stype duck-typing in our code. With use of the techniques of Type-Erasure, we can have both.
 
-## What is Type-Erasure?
+### What is Type-Erasure?
 
 There appears to be a significant amount of confusion as to what Type-Erasure in C++ *exactly is*, *how it should be implemented* and *what problems it solves*. There are numerous blog posts online which present different things, most of which I would not describe as *real* type-erasure. There are likely several reasons for the confusion.
 
@@ -71,7 +71,7 @@ In this review, I define type erasure in the following way.
 
 This obviously isn't something afforded by `std::vector<T>`, which contains a specific and fixed type `T`.
 
-## A Non-Solution
+### A Non-Solution
 
 When the problem of type-erasure arrises in real-world situations, many software engineers default to a solution which I describe as a non-solution. It works, in the sense that the code compiles and runs, but the code which is written doesn't describe the problem at hand or the solution to it.
 
@@ -81,6 +81,7 @@ When the problem of type-erasure arrises in real-world situations, many software
 
 
 
-![_config.yml]({{ site.baseurl }}/images/config.png)
+// how to add an image
+//![_config.yml]({{ site.baseurl }}/images/config.png)
 
 The easiest way to make your first post is to edit this one. Go into /_posts/ and update the Hello World markdown file. For more instructions head over to the [Jekyll Now repository](https://github.com/barryclark/jekyll-now) on GitHub.
