@@ -358,16 +358,16 @@ class TypeErased
     template <typename T>
     class AnimalWrapper : public MyAnimal
     {
-        T m_animal;
+        T m_data;
 
     public:
         AnimalWrapper(const T animal)
-            : m_animal(animal)
+            : m_data(std::move(animal))
         { }
 
-        virtual std::unique_ptr<MyAnimal> const override
+        virtual std::unique_ptr<MyAnimal> copy() const override
         {
-            return m_animal->see();
+            return std::make_unique(AnimalWrapper<T>(m_data));
         }
     };
 
@@ -383,10 +383,6 @@ public:
 };
 ```
 
+The functions `see()` and `say()` have been exchanged for a function `copy()` which is a virtual constructor. Often this function would be called `clone()`.
 
-
-
-// how to add an image
-//![_config.yml]({{ site.baseurl }}/images/config.png)
-
-The easiest way to make your first post is to edit this one. Go into /_posts/ and update the Hello World markdown file. For more instructions head over to the [Jekyll Now repository](https://github.com/barryclark/jekyll-now) on GitHub.
+As Kilian notes, the names of the functions for `TypeErased::` do not have to correspond to those for `MyAnimal::`.
