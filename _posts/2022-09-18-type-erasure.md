@@ -75,9 +75,42 @@ This obviously isn't something afforded by `std::vector<T>`, which contains a sp
 
 When the problem of type-erasure arrises in real-world situations, many software engineers default to a solution which I describe as a non-solution. It works, in the sense that the code compiles and runs, but the code which is written doesn't describe the problem at hand or the solution to it.
 
-- The code written doesn't say anything about the problem beyond that of the surface level details. There is no "meta-conversation" above what is written.
+Jumping into it - how many times have you seen something that looks like the following?
 
-- Code should infer some broader or higher level meaning to the reader, not just be a surface level description of a recipie which solves the particular problem at hand. This is what differentiates software engineers who are good at writing libraries from those who can just turn the crank and produce a solution to todays problem, something which isnt' adaptable to tomrrows.
+```cpp
+std::vector<OneType> vecOfOneType;
+std::vector<AnotherType> vecOfAnotherType;
+std::vector<YetAnotherType> vecOfYetAnotherType;
+
+enum class MyTypes
+{
+    OneType,
+    AnotherType,
+    YetAnotherType
+};
+
+if(someObject.type() == MyTypes::OneType)
+{
+    vecOfOneType.push_back(someObject);
+}
+else if(someObject.type() == MyTypes::AnotherType)
+// ...
+```
+
+There are a multitude of problems here.
+
+- Repetition. We had to introduce 3 vectors when there should only really be one container for our objects.
+- Extra logic. Everywhere we want to use one of these containers, we have to repeatedly write out a long `if-elseif-else` block covering all the possible types. These additional branches will inevitiably slow the code down, so if possible we seek a solution which doesn't have this.
+- Maintainance. Every time we want to add or remove a type, we incur a significant maintainance bill. The `if-elseif-else` block might be used in hundreds of locations throughout our code. It will be costly to update all of them. It will also be risky, because we might miss some occurances, which will likely lead to silent failures or undefined behaviour.
+- It isn't elegant. Good code should be elegant. It should look "nice" and be enjoyable to work with. This "feels" like a "hack" or a poorly designed workaround to a language restriction - because it is. Do you want to work on something like this? Probably no.
+
+There is another problem, but this one is slightly more subtle.
+
+- Lack of a deeper inferred meaning or statement of intent.
+
+The code written doesn't say anything about the problem beyond that of the surface level details. There is no "meta-conversation" which occurs at a higher level above what is written. The code here says - literally - that we have a container of one thing, and a container of another thing, and a container of yet another thing. Although these lines happen to occur one after the other, the code suggests that they are seperate things in independent containers. In reality this is wrong - the opposite is true. We *intend* to use these containers together - as if they were one container. So why haven't we written code which *says this*.
+
+> Code should infer some broader or higher level meaning to the reader, not just be a surface level description of a recipie which solves the particular problem at hand. This is what differentiates software engineers who are good at writing libraries from those who can just turn the crank and produce a solution to todays problem, something which isnt' adaptable to tomrrows.
 
 
 
