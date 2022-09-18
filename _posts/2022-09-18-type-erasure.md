@@ -386,3 +386,29 @@ public:
 The functions `see()` and `say()` have been exchanged for a function `copy()` which is a virtual constructor. Often this function would be called `clone()`.
 
 As Kilian notes, the names of the functions for `TypeErased::` do not have to correspond to those for `MyAnimal::`.
+
+
+## Why not Boost Any?
+
+Can't use boost any, because object has to be cast back to something. We don't want to have an explicit cast in order to be able to use an object.
+
+## Why no std::any?
+
+Not sure yet. Check. TODO
+
+
+## Cheinan Marks *Practical Type Erasure*
+
+Talks about boost any and having to use a big if block with casts to actually use it with a hetrogenius container.
+
+I don't think this is exactly true. It is true that the interface (operations which can be called on the object) must be defined in advance.
+
+https://www.youtube.com/watch?v=5PZVuUzP34g
+
+Requires Loki typeinfo.
+
+The backend uses templated classes, and boost any is used as a method to transport from the various templated backend classes to the frontend which the user sees. The frontend is templated as well, so I don't fully understand the reason for using boost any.
+
+
+## Klaus Iglberger *Breaking Dependencies: Type Erasure - A Design Analysis*
+
