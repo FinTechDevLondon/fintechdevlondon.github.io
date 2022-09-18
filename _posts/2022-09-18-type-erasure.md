@@ -112,6 +112,278 @@ The code written doesn't say anything about the problem beyond that of the surfa
 
 > Code should infer some broader or higher level meaning to the reader, not just be a surface level description of a recipie which solves the particular problem at hand. This is what differentiates software engineers who are good at writing libraries from those who can just turn the crank and produce a solution to todays problem, something which isnt' adaptable to tomrrows.
 
+### Dave Kilian Type Erasure
+
+Although the problem intended to be solved has already been stated, namely being able to store different types in the same container, first different forms of type-erasure will be explored.
+
+Dave Kilian has written a blog post on the subject of type erasure. It can be found [here](http://davekilian.com/cpp-type-erasure.html). Unfortunatly I wasn't able to find the original source on Hacker News.
+
+Dave covers two cases, firstly using polymorphic interfaces, and secondly using templates. The first case looks something like this
+
+```cpp
+class Animal
+{
+    public:
+
+    virtual std::string see() const = 0;
+    virtual std::string say() const = 0;
+};
+
+class Cow : public Animal
+{
+    public:
+
+    std::string see() const override
+    {
+        return "Cow";
+    }
+
+    std::string say() const override
+    {
+        return "moo";
+    }
+};
+
+class Dog : public Animal
+{
+    // ...
+};
+
+std::vector<Animal*> animal_vec;
+
+void someFunction(const std::vector<Animal*> animal_vec)
+{
+    for(const auto animal_p : animal_vec)
+    {
+        std::cout << "Animal " << animal_p->see() << " says " << animal_p->say() << std::endl;
+    }
+}
+```
+
+There are a multitude of problems here.
+
+- Reference symantics. We are forced to store a pointer when we would rather have stored a value.
+
+Our container requires that we store the same type of object, and in particular these objects must have the same size in memory, or the container cannot allocate memory for them, since the size of each element must be known in advance, and must be the same. Although it looks like we are storing something which can be a different type, actually we store only a pointer. It is always 8 bytes wide, and points to some heap allocated memory which contains the runtime information required for virtual function dispatch.
+
+- Tightly coupled inheritance hierachy. We are forced to have a system where everything which may be stored in the container must inherit from the interface defined by `class Animal`.
+
+Although our inheritance hierachy might be shallow and wide, we will inevitiably have strong couplings in places which make little sense. We might have another inheritence hirachy which already exists. If we want to store these objects in the container, they must additionally inherit from an interface class. Anyone with even a moderate amount of experience with C++ will already anticipate the maintainance nightmare that will unfold if we continue this path.
+
+Also consider the "is-a" vs "has-a" ideom. If you have a collection of unrelated objects which you wish to store in a container, then what is the "is-a" relationship? In the best case, they are all instances of some theoretical abstract concept which doesn't exist and has no tangable real-world concept. In which case, what has this inheritance relationship gained us, other than additional confusion and complexity? The code is harder to understand.
+
+The second example in Dave Kilian's write up uses templates to instantiate multiple versions of a function for different types. This isn't related to type-erasure, because it isn't related to storing multiple objects in a container. Therefore I do not discuss this in detail.
+
+The next example from Kilian uses wrapper classes to forward function calls to what are now assumed to be unrelated types. This is a step in the right direction conceptually, because now we are assuming `class Cow`, `class Dog`, `class XYZ`, `...` are all unrelated types. They do not inherit from a common base class or interface.
+
+Kilian then writes a second inheritance hierachy which wraps the unrelated objects.
+
+```cpp
+class DogWrapper : public AnimalWrapper
+{
+    Dog my_dog;
+
+    public:
+
+    const std::string see() const
+    {
+        return my_dog.see();
+    }
+}
+```
+
+We have gained the concept of wrapping types which are totally unrelated in a new inheritance hierachy which relates all the wrapper classes via an interface base class `AnimalWrapper`. However, this isn't a particularly useful step forward, because we now have the same problem as before. Namely, we are working with reference symantics, and we have to maintain a very wide hierachy, with one wrapper class for each type. Note that the pattern defined by the wrapper hierachy is just an instance of the Adapter Pattern.
+
+Kilian presents the following code in the final section.
+
+```cpp
+class SeeAndSay
+{
+    // The interface
+    class MyAnimal
+    {
+    public:
+        virtual const char *see() const = 0;
+        virtual const char *say() const = 0;
+    };
+
+    // The derived type(s)
+    template <typename T>
+    class AnimalWrapper : public MyAnimal
+    {
+        const T *m_animal;
+
+    public:
+        AnimalWrapper(const T *animal)
+            : m_animal(animal)
+        { }
+
+        const char *see() const { return m_animal->see(); }
+        const char *say() const { return m_animal->say(); }
+    };
+
+    // Registered animals
+    std::vector<MyAnimal*> m_animals;
+    
+public:
+    template <typename T>
+    void addAnimal(T *animal)
+    {
+        m_animals.push_back(new AnimalWrapper(animal));
+    }
+
+    void pullTheString()
+    {
+        size_t index = rand() % m_animals.size();
+
+        MyAnimal *animal = m_animals[index];
+        printf("The %s says '%s!'", 
+            animal->see(), 
+            animal->say());
+    }
+};
+```
+
+Kilian seems to have somewhat missed the point here, although this does look similar to the correct code for type-erasure that will be presented later. Let's make an assessment of what is presented here.
+
+- The private template class `AnimalWrapper` which inherits from the interface class `MyAnimal` does provide the basic structure needed for type erasure, although the template class stores a pointer to `const T` rather than storing `T` by value.
+- The `SeeAndSay` class has additional functions which obfuscate the fact that it is the type erasure class we are aiming to write. It is possible to store `SeeAndSay` in a container, and each instance of `SeeAndSay` can store one or more instances of `MyAnimal` in the member variable `m_animals`.
+- The fact that `m_animals` is a vector obfuscates things further. We would usually expect to store exactly one object in `SeeAndSay`, not a variable number of 0 or more.
+
+We can improve things significantly by cutting the example down to make it clear.
+
+```cpp
+class TypeErased
+{
+    class MyAnimal
+    {
+    public:
+        virtual const char *see() const = 0;
+        virtual const char *say() const = 0;
+    };
+
+    template <typename T>
+    class AnimalWrapper : public MyAnimal
+    {
+        const T *m_animal;
+
+    public:
+        AnimalWrapper(const T *animal)
+            : m_animal(animal)
+        { }
+
+        const char *see() const { return m_animal->see(); }
+        const char *say() const { return m_animal->say(); }
+    };
+
+    std::unique_ptr<MyAnimal> m_animal;
+    
+public:
+    template <typename T>
+    void setAnimal(T *animal)
+    {
+        // pseudocode ...
+        m_animal = std::make_unique(animal);
+    }
+};
+```
+
+We can now store `TypeErased` in a container. Anything can be wrapped by `TypeErased` provided it supports the functions `see()` and `say()`.
+
+But isn't this unneccessarily restrictive?
+
+Yes it is. The requirement to support `see()` and `say()` further obfuscates matters. There will be some common operations that a type should support if it is to be placed into a container, but the functions `see()` and `say()` are not among them.
+
+What operations should be supported? `TypeErased` should be
+
+- creatable
+- destroyable
+- copyable
+- moveable
+
+As a consequence, `MyAnimal` has to support the same operations. We can clean things up further by storing `T` by value in `class AnimalWrapper`.
+
+- TODO: why don't we need virtual function dispatch for any of the other operations beyond `copy()`?
+
+```cpp
+class TypeErased
+{
+    public:
+
+    template<typename T>
+    TypeErased(const T value)
+        : m_animal(std::make_unique(AnimalWrapper<T>(value)));
+    {
+
+    }
+
+    ~TypeErased()
+    {
+        // m_animal will be destoyed here automatically since it is a unique_ptr
+    }
+
+    TypeErased(const TypeErased& other)
+        : m_animal(other.m_animal->copy())
+    {
+
+    }
+
+    TypeErased(TypeErased&& other) // = default
+        : m_animal(std::move(other.m_animal))
+    {
+
+    }
+
+    TypeErased operator=(const TypeErased& other)
+    {
+        TypeErased(other);
+        *this = std::move(other);
+        return *this;
+    }
+
+    TypeErased operator=(TypeErased&& other) // = default
+    {
+        m_animal = std::move(other.m_animal);
+        return *this;
+    }
+
+    private:
+
+    class MyAnimal
+    {
+    public:
+        virtual std::unique_ptr<MyAnimal> copy() const = 0;
+    };
+
+    template <typename T>
+    class AnimalWrapper : public MyAnimal
+    {
+        T m_animal;
+
+    public:
+        AnimalWrapper(const T animal)
+            : m_animal(animal)
+        { }
+
+        virtual std::unique_ptr<MyAnimal> const override
+        {
+            return m_animal->see();
+        }
+    };
+
+    std::unique_ptr<MyAnimal> m_animal;
+    
+public:
+    template <typename T>
+    void setAnimal(T *animal)
+    {
+        // pseudocode ...
+        m_animal = std::make_unique(animal);
+    }
+};
+```
+
+
 
 
 // how to add an image
