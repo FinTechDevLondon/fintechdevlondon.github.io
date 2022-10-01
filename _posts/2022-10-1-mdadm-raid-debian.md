@@ -1,9 +1,13 @@
 ---
 layout: post
-title: Setting up mdadm raid partitions on Debian Linux - Move exiting directories such as `/home` to RAID Array backed storage
+title: Move exiting directories to RAID backed storage with mdadm and Debian Linux
 ---
 
-## Setting up mdadm raid partitions on Debian Linux
+## Move exiting directories such as `/home` to RAID Array backed storage
+
+In this guide, we will move existing directories on our Debian Linux system to RAID backed storage. For example, it is possible to move `/home` to a seperate RAID array, and integrate this in a way which is transparent to users of the sytem.
+
+## Setting up mdadm RAID with Debian Linux
 
 I have written this guide to document the steps required to introduce raid partitions to a Debian Linux system after installation. The commands used are quite generic across Linux systems, so this should work on all flavors of Linux with minimal modification.
 
@@ -25,7 +29,7 @@ In this guide we will
 - Bind (mount) RAID backed directories (with copied user data) to existing (non-RAID) directories
 - Configure fstab to keep these changes after reboot
 
-## Installing `mdadm`, and prerequisites
+### Installing `mdadm`, and prerequisites
 
 I have a computer with 3 SSDs.
 
@@ -43,7 +47,7 @@ $ su - -l
 # apt update && apt install mdadm rsync
 ```
 
-## Setup the Partitions and Raid Array
+### Setup the Partitions and Raid Array
 
 First we create new partitions on our blank drives. My disks are `/dev/sdb` and `/dev/sdc` - yours may be different, so check first.
 
@@ -93,7 +97,7 @@ major minor  #blocks  name
    9        0  976629440 md0
 ```
 
-## Create the new filesystem, and copy existing data
+### Create the new filesystem, and copy existing data
 
 Create the filesystem on the raid device. As an asside it is useful to know that a filesystem is fundamentally different to a partition - in case you did not already realize. If you usually use a graphical interface such as `gparted` (or similar) for partition management, the distinction between the two concepts is usually less obvious.
 
@@ -129,7 +133,7 @@ Next, copy any existing files. This step might not be relevant to all usescases.
 # rsync -av /var/lib/gitea /mnt/md/var/lib
 ```
 
-## Setup the raid array for auto-reassembly on reboot
+### Setup the raid array for auto-reassembly on reboot
 
 If you reboot the system now, you will either find there is no raid system on reboot, or it looks a bit weird. This is what my system looked like after a reboot.
 
@@ -180,7 +184,7 @@ md0 : active (auto-read-only) raid1 sdc1[1] sdb1[0]
       bitmap: 0/8 pages [0KB], 65536KB chunk
 ```
 
-## Mount (bind) the new raid-backed filesystem "over" the existing directory
+### Mount (bind) the new raid-backed filesystem "over" the existing directory
 
 This step might seem a bit strange. What it does is mount a directory from the raid-backed filesystem "on top of" an existing directory. What this does is "mask" the exisitng directory (and all its contents) - replacing it with the directory from the raid filesystem. This step can be revered using `umount`.
 
@@ -193,7 +197,7 @@ From the user point of view, the existing directory works as before, but the con
 
 To explain this another way, the command `mount --bind /mnt/md0/home /home` "replaces" `/home` with the contents of `/mnt/md0/home`. No files are lost in this process, the old directory and its constents still exist, and they will reappear if `/home` is unmounted again. With the new directory mounted on top of the existing one, the new contents can be used in the exact same way that the old directory contents could. Just keep in mind that if the raid array fails to start up or mount that the old directory might "reappear" giving the illusion that data has been lost. You can view the current mount scheme with the `mount` command.
 
-## Setup `fstab` to mount the raid array at boot
+### Setup `fstab` to mount the raid array at boot
 
 Get the UUID of the raid array.
 
@@ -213,6 +217,6 @@ UUID=69e51a35-257c-46ea-abe5-7e1604d2d6f4 /mnt/md0        ext4    errors=remount
 /mnt/md0/var/lib/gitea /var/lib/gitea     none            defaults,bind           0       0
 ```
 
-## Wrap up
+### Wrap up
 
 That's it. You should now be able to create RAID arrays, and swap out existing (non raid backed) directories for raid backed ones.
