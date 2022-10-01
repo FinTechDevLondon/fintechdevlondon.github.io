@@ -106,7 +106,7 @@ At this point, while you can technically proceed and begin using the raid array,
 
 While the disk is syncing, the output of `cat /proc/mdstat` will show something similar to the following.
 
-````
+```
 # cat /proc/mdstat
 Personalities : [raid1] [linear] [multipath] [raid0] [raid6] [raid5] [raid4] [raid10]
 md0 : active raid1 sdb1[0] sdc1[1]
