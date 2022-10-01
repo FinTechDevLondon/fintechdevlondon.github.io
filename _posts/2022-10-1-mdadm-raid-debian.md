@@ -15,9 +15,15 @@ This guide explains *how to create a raid system, and how to move non-raid direc
 
 In this guide we will
 
-- Install mdadm, and create a Raid 1 (mirror) array
-- Setup partitions, fstab and mount pointes
-
+- Setup partitions on new disks
+- Install mdadm
+- Create a RAID 1 (mirror) Array
+- Create a filesystem
+- Wait for disks to synchronize
+- Copy over existing user data
+- Configure the RAID Array to load correctly after a reboot
+- Bind (mount) RAID backed directories (with copied user data) to existing (non-RAID) directories
+- Configure fstab to keep these changes after reboot
 
 ## Installing `mdadm`, and prerequisites
 
