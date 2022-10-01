@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Setting up mdadm raid partitions on Debian Linux
+title: Setting up mdadm raid partitions on Debian Linux - Move exiting directories such as `/home` to RAID Array backed storage
 ---
 
 ## Setting up mdadm raid partitions on Debian Linux
